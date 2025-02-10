@@ -2,5 +2,4 @@ flask
 openai
 python-dotenv
 gunicorn
-threading
 requests
