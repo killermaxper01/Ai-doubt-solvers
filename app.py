@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import os
 import openai
-
+# Updated OpenAI API compatibility
 app = Flask(__name__)
 
 # Load OpenAI API key securely
