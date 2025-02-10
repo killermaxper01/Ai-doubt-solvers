@@ -1,6 +1,8 @@
+
 from flask import Flask, request, jsonify
 import os
 import openai
+import threading
 
 app = Flask(__name__)
 
@@ -10,7 +12,19 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("API key not found. Set OPENAI_API_KEY in the environment variables.")
 
-openai.api_key = OPENAI_API_KEY  # Set API key for OpenAI
+# Set OpenAI API key
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+def process_question(question, result):
+    """ Function to process AI response in a separate thread """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": question}]
+        )
+        result["answer"] = response.choices[0].message.content
+    except Exception as e:
+        result["error"] = str(e)
 
 @app.route('/')
 def home():
@@ -25,16 +39,20 @@ def ask_question():
         if not question:
             return jsonify({"error": "Question is required"}), 400
 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": question}]
-        )
+        result = {}  # Dictionary to store the response
 
-        return jsonify({"answer": response['choices'][0]['message']['content']})
+        # Run OpenAI API call in a separate thread
+        thread = threading.Thread(target=process_question, args=(question, result))
+        thread.start()
+        thread.join()  # Wait for the thread to finish
+
+        if "error" in result:
+            return jsonify({"error": result["error"]}), 500
+
+        return jsonify({"answer": result["answer"]})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ Add this line to start the Flask app
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True, threaded=True)
