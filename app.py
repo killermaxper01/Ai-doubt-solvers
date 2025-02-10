@@ -35,5 +35,6 @@ def ask_question():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ✅ Add this line to start the Flask app
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
